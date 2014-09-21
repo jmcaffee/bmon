@@ -1,0 +1,134 @@
+-- ***************************************************************************
+-- bmon installer
+--
+-- Author: knuckleheadJoe
+-- Date: 2014-09-21
+--
+-- Much of the code for this installer was copied from Kingdaro's craftbang
+-- source code. @see https://github.com/Kingdaro/CraftBang
+--
+-- ***************************************************************************
+
+local url = "https://raw.github.com/jmcaffee/bmon/master/bmon/"
+local files = {}
+local filelist = {
+    'basemon';
+}
+
+local function clear()
+    term.clear()
+    term.setCursorPos(1,1)
+end
+
+local kjlibInstalled = false
+if not fs.exists('/kjlib') then
+    clear()
+    kjlibInstalled = true
+
+    write "kjlib does not appear to be installed on this machine."
+    write "Do you wish to install it? [Y/n] "
+    local input = read():lower():sub(1,1)
+    if input == 'n' then
+        print "kjlib not installed. Run this installer again after installing kjlib."
+        return
+    end
+
+    write "Installing kjlib..."
+    local kjurl = "https://raw.github.com/jmcaffee/kjlib/master/installer"
+    local instPath = '.installkj'
+    local download = http.get(kjurl)
+    if download then
+        local file = fs.open(instPath, 'w')
+        file.write(download.readAll())
+        file.close()
+        download.close()
+
+        shell.run(instPath)
+        fs.delete(instPath)
+    else
+        print("Couldn't get "..kjinstaller)
+        print("kjlib installation failed.")
+        return
+    end
+
+    sleep(1)
+end
+
+clear()
+local errors = false
+for i=1, #filelist do
+    local filename = filelist[i]
+    local fullurl = url .. filename
+    local localpath = '/bmon/'..filename
+
+    local download = http.get(fullurl)
+    if download then
+        print("Fetching "..filename)
+        files[localpath] = download.readAll()
+        download.close()
+    else
+        print("Couldn't get "..filename)
+        print "Installation failed."
+        return
+    end
+end
+sleep(1)
+
+local installed = false
+if fs.exists('/bmon') then
+    clear()
+    installed = true
+
+    write "Overwrite current bmon installation? [Y/n] "
+    local input = read():lower():sub(1,1)
+    if input == 'n' then
+        print "Will not write files."
+        return
+    end
+    fs.delete('/bmon')
+end
+
+clear()
+fs.makeDir('/bmon')
+fs.makeDir('/bmon/lib')
+for path, content in pairs(files) do
+    print("Writing "..path)
+    local file = fs.open(path, 'w')
+    file.write(content)
+    file.close()
+end
+print "Installation complete!"
+sleep(1)
+
+if not installed then
+    clear()
+
+    local startupContent = [[
+    shell.run("bmon/session")
+    ]]
+
+    write "Run bmon on startup? "
+    if fs.exists('startup') then
+        print "\nYour current startup file will be renamed to startup-old."
+    end
+    write "[Y/n] "
+
+    local input = read():lower():sub(1,1)
+
+    if input == 'n' then
+        print "In that case, run bmon/session to start bmon."
+    else
+        if fs.exists('startup') then
+            if fs.exists('startup-old') then
+                fs.delete('startup-old')
+            end
+            fs.move('startup','startup-old')
+        end
+
+        local startup = fs.open('startup', 'w')
+        startup.write(startupContent)
+        startup.close()
+        print "bmon will now run on startup."
+    end
+end
+

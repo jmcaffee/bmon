@@ -1,0 +1,124 @@
+-- ***************************************************************************
+-- Base Monitoring program
+--
+-- This application is expecting a webserver running on localhost port 4567.
+-- It uses this webserver to send/receive status information between the other
+-- monitored computers/turtles.
+--
+-- Author: knuckleheadJoe
+-- Date: 2014-09-21
+--
+-- ***************************************************************************
+
+os.loadAPI("kjlib/display")
+os.loadAPI("kjlib/device")
+os.loadAPI("kjlib/listener")
+os.loadAPI("kjlib/text")
+os.loadAPI("kjlib/state")
+os.loadAPI("kjlib/web")
+
+args={...}
+
+local paramsOk = false
+
+if #args > 0 then
+    print("Usage: ".. shell.getRunningProgram())
+else
+    paramsOk = true
+end
+
+local function printStats(stats)
+    -- Data passed to this function must already be unserialized.
+    --stats = textutils.unserialize(stats)
+
+    print("Sender:    "..stats.id)
+    print("Status:    "..stats.status)
+    print("Fuel:      "..stats.fuelLevel)
+    print("Inventory: "..stats.invLevel)
+    print("Mined:     "..stats.totalMined)
+end
+
+local function handleKeys()
+    local done = false
+
+    while not done do
+        key = listener.onKeyEvent()
+
+        if (key == 'q') then
+            done = true
+        elseif (key == 'h') then
+            printCmdMenu()
+        elseif (key == 'S') then
+            display.scaleTextUp()
+        elseif (key == 's') then
+            display.scaleTextDown()
+        elseif (key == 't') then
+            status = state.newTurtleStatus()
+            display.turtleStatus(status)
+        end
+    end
+end
+
+local function waitForHttpResponse()
+    local polling = true
+
+    while polling do
+        local event, url, response = os.pullEvent()
+
+        if event == "http_success" then
+            local encodedData = response.readAll()
+            response.close()
+            --display.prnt(encodedData)
+            local binaryData = textutils.unserialize(web.url_decode(encodedData))
+            display.turtleStatus(binaryData)
+            --printStats(binaryData)
+        elseif event == "http_failure" then
+            display.prnt("server offline")
+        end
+    end
+end
+
+local function pollServer(id)
+    local baseUrl = 'http://localhost:4567/status/'
+    local url = baseUrl .. id
+
+    http.request(url)
+end
+
+local function getStatuses()
+    local id = 'mt2'
+    while true do
+        pollServer(id)
+        sleep(10)
+    end
+end
+
+function printCmdMenu()
+    text.printHdr(' Available Commands ')
+    print('q - Quit')
+    print('S - Scale text up')
+    print('s - Scale text down')
+    print('t - Display test data')
+    print('h - This help menu')
+    print()
+end
+
+if paramsOk == true then
+    --local m = device.getDevice('modem')
+    local running = false
+
+    --if not m then
+    --    print("No modem attached")
+    --    return
+    --else
+        running = true
+        printCmdMenu()
+
+    --    m.open(channel)
+    --end
+
+    local num = parallel.waitForAny(waitForHttpResponse, getStatuses, handleKeys)
+
+    print("done")
+end
+
