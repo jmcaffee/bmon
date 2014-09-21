@@ -13,6 +13,7 @@ local url = "https://raw.github.com/jmcaffee/bmon/master/bmon/"
 local files = {}
 local filelist = {
     'basemon';
+    'session';
 }
 
 local function clear()
