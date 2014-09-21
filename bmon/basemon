@@ -10,12 +10,12 @@
 --
 -- ***************************************************************************
 
-os.loadAPI("kjlib/display")
-os.loadAPI("kjlib/device")
-os.loadAPI("kjlib/listener")
-os.loadAPI("kjlib/text")
-os.loadAPI("kjlib/state")
-os.loadAPI("kjlib/web")
+os.loadAPI("/kjlib/display")
+os.loadAPI("/kjlib/device")
+os.loadAPI("/kjlib/listener")
+os.loadAPI("/kjlib/text")
+os.loadAPI("/kjlib/state")
+os.loadAPI("/kjlib/web")
 
 args={...}
 
